@@ -50,14 +50,21 @@ st.markdown("""
         padding: 1rem;
         border-radius: 0.5rem;
         margin-bottom: 1rem;
+        color: #000000;  /* Texto preto */
     }
     .user-message {
         background-color: #E3F2FD;
         border-left: 4px solid #1E88E5;
     }
+    .user-message strong {
+        color: #1565C0;  /* Azul escuro para "Você:" */
+    }
     .assistant-message {
-        background-color: #F5F5F5;
+        background-color: #E8F5E9;  /* Verde claro em vez de cinza */
         border-left: 4px solid #4CAF50;
+    }
+    .assistant-message strong {
+        color: #2E7D32;  /* Verde escuro para "Assistente:" */
     }
     .tool-output {
         background-color: #FFF3E0;
@@ -65,6 +72,10 @@ st.markdown("""
         padding: 1rem;
         border-radius: 0.5rem;
         margin: 1rem 0;
+        color: #000000;  /* Texto preto */
+    }
+    .tool-output strong {
+        color: #E65100;  /* Laranja escuro para "Ferramentas:" */
     }
     .stats-box {
         background-color: #F8F9FA;

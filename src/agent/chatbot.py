@@ -27,7 +27,7 @@ class Chatbot:
         """
         # Configura Gemini
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
         
         # Inicializa componentes
         self.prompt_manager = PromptManager(data_dir)

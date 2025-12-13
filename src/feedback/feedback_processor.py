@@ -25,7 +25,7 @@ class FeedbackProcessor:
             data_dir: Diretório para armazenar feedbacks
         """
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-pro')
+        self.model = genai.GenerativeModel('gemini-2.5-flash')
         self.data_dir = Path(data_dir)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.feedbacks_file = self.data_dir / "feedbacks.json"
