@@ -7,7 +7,7 @@ import re
 from typing import List, Dict, Optional, Tuple
 import google.generativeai as genai
 
-from ..tools import ViaCEPTool, PokemonTool
+from ..tools import ViaCEPTool, PokemonTool, IBGETool
 from ..vectorstore import ChromaVectorStore
 from .prompt_manager import PromptManager
 
@@ -36,7 +36,8 @@ class Chatbot:
         # Inicializa ferramentas
         self.tools = {
             "viacep": ViaCEPTool(),
-            "pokemon": PokemonTool()
+            "pokemon": PokemonTool(),
+            "ibge": IBGETool()
         }
         
         # Histórico da conversa atual
@@ -92,6 +93,44 @@ class Chatbot:
                     if pokemon in message_lower:
                         tools_to_use.append(("pokemon", pokemon))
                         break
+                    
+        ibge_keywords = ["estado", "município", "municipio", "cidade", "ibge", 
+                        "região", "regiao", "uf", "brasil"]
+        
+        # Lista de UFs e alguns estados comuns
+        ufs = ["ac", "al", "ap", "am", "ba", "ce", "df", "es", "go", "ma", 
+               "mt", "ms", "mg", "pa", "pb", "pr", "pe", "pi", "rj", "rn", 
+               "rs", "ro", "rr", "sc", "sp", "se", "to"]
+        
+        estados_comuns = ["são paulo", "rio de janeiro", "minas gerais", "bahia",
+                         "paraná", "santa catarina", "rio grande do sul"]
+        
+        # Verifica se menciona IBGE ou conceitos geográficos
+        if any(keyword in message_lower for keyword in ibge_keywords):
+            # Procura por UF
+            words = message_lower.split()
+            for word in words:
+                clean_word = word.strip('.,!?')
+                if clean_word in ufs:
+                    tools_to_use.append(("ibge", clean_word.upper()))
+                    break
+            
+            # Procura por nome de estado/cidade
+            for estado in estados_comuns:
+                if estado in message_lower:
+                    tools_to_use.append(("ibge", estado.title()))
+                    break
+            
+            # Se não encontrou mas tem keywords, tenta extrair possível nome
+            if not any(t[0] == "ibge" for t in tools_to_use):
+                # Pega palavras capitalizadas que podem ser cidades/estados
+                words_orig = user_message.split()
+                for word in words_orig:
+                    if word and word[0].isupper() and len(word) > 3:
+                        clean = word.strip('.,!?')
+                        if clean.lower() not in ibge_keywords:
+                            tools_to_use.append(("ibge", clean))
+                            break
         
         return tools_to_use
     
@@ -121,9 +160,15 @@ class Chatbot:
                     results.append(formatted)
                     logger.info(f"Ferramenta Pokémon executada: {param}")
                     
+                elif tool_name == "ibge":
+                    result = self.tools["ibge"].execute(param)
+                    formatted = self.tools["ibge"].format_result(result)
+                    results.append(formatted)
+                    logger.info(f"Ferramenta IBGE executada: {param}")
+                    
             except Exception as e:
                 logger.error(f"Erro ao executar ferramenta {tool_name}: {e}")
-                results.append(f"⚠️ Erro ao executar {tool_name}: {str(e)}")
+                results.append(f"Erro ao executar {tool_name}: {str(e)}")
         
         return "\n\n".join(results) if results else ""
     

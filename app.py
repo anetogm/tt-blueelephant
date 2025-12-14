@@ -147,8 +147,9 @@ def render_sidebar():
         # Ferramentas disponíveis
         st.markdown("#### Ferramentas Disponíveis")
         st.markdown("""
-        - 📍 **ViaCEP**: Consulta de CEPs brasileiros
-        - ⚡ **PokéAPI**: Informações sobre Pokémon
+        - **ViaCEP**: Consulta de CEPs brasileiros
+        - **PokéAPI**: Informações sobre Pokémon
+        - **IBGE**: Dados de estados e municípios do Brasil
         """)
         
         st.markdown("---")
