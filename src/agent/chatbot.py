@@ -7,7 +7,7 @@ from typing import List, Dict, Optional
 import google.generativeai as genai
 from google.generativeai.types import content_types
 
-from ..tools import ViaCEPTool, PokemonTool, IBGETool
+from ..tools import ViaCEPTool, PokemonTool, IBGETool, OpenMeteoTool
 from ..vectorstore import ChromaVectorStore
 from .prompt_manager import PromptManager
 
@@ -32,7 +32,8 @@ class Chatbot:
         self.tools_instances = {
             "viacep": ViaCEPTool(),
             "pokemon": PokemonTool(),
-            "ibge": IBGETool()
+            "ibge": IBGETool(),
+            "clima": OpenMeteoTool()
         }
         
         # Define funções para o Gemini (formato correto)
@@ -77,6 +78,20 @@ class Chatbot:
                         )
                     },
                     required=["consulta"]
+                )
+            ),
+            genai.protos.FunctionDeclaration(
+                name="consultar_clima",
+                description="Consulta informações de clima atual e previsão do tempo. Use quando o usuário perguntar sobre clima, tempo, temperatura, previsão meteorológica.",
+                parameters=genai.protos.Schema(
+                    type=genai.protos.Type.OBJECT,
+                    properties={
+                        "local": genai.protos.Schema(
+                            type=genai.protos.Type.STRING,
+                            description="Nome da cidade ou localização (ex: 'São Paulo', 'New York', 'Tokyo', 'Paris')"
+                        )
+                    },
+                    required=["local"]
                 )
             )
         ]
@@ -129,13 +144,20 @@ class Chatbot:
                 logger.info(f"Function calling: IBGE executada para {consulta}")
                 return formatted
             
+            elif function_name == "consultar_clima":
+                local = function_args.get("local", "")
+                result = self.tools_instances["clima"].execute(local)
+                formatted = self.tools_instances["clima"].format_result(result)
+                logger.info(f"Function calling: Clima executada para {local}")
+                return formatted
+            
             else:
                 logger.warning(f"Função desconhecida: {function_name}")
                 return f"Função '{function_name}' não reconhecida"
                 
         except Exception as e:
             logger.error(f"Erro ao executar função {function_name}: {e}")
-            return f"⚠️ Erro ao executar {function_name}: {str(e)}"
+            return f"Erro ao executar {function_name}: {str(e)}"
     
     def _get_context_from_vectorstore(self, user_message: str) -> str:
         """

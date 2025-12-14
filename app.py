@@ -150,6 +150,7 @@ def render_sidebar():
         - **ViaCEP**: Consulta de CEPs brasileiros
         - **PokéAPI**: Informações sobre Pokémon
         - **IBGE**: Dados de estados e municípios do Brasil
+        - **Open-Meteo**: Clima atual e previsão do tempo
         """)
         
         st.markdown("---")
@@ -197,7 +198,7 @@ def render_chat_area():
                     tools_used_names = [tool[0] for tool in msg.get("tools_used", [])]
                     tools_label = ", ".join(tools_used_names) if tools_used_names else "Ferramentas"
                     
-                    with st.expander(f"🔧 Ver detalhes da ferramenta: {tools_label}", expanded=False):
+                    with st.expander(f"Ver detalhes da ferramenta: {tools_label}", expanded=False):
                         st.markdown(msg["tools_output"])
     
     # Input do usuário
