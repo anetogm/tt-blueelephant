@@ -153,6 +153,7 @@ def render_sidebar():
         - **Open-Meteo**: Clima atual e previsão do tempo
         - **Open Library**: Informações sobre livros e autores
         - **TVMaze**: Informações sobre séries de TV
+        - **Lyrics.ovh**: Letras de músicas
         """)
         
         st.markdown("---")
@@ -162,7 +163,7 @@ def render_sidebar():
         - **LLM**: Google Gemini
         - **Vector Store**: ChromaDB
         - **Interface**: Streamlit
-        - **APIs**: ViaCEP, PokéAPI
+        - **APIs**: ViaCEP, PokéAPI, IBGE, Open-Meteo, Open Library, TVMaze, Lyrics.ovh
         """)
 
 

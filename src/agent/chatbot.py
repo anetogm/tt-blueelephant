@@ -7,7 +7,7 @@ from typing import List, Dict, Optional
 import google.generativeai as genai
 from google.generativeai.types import content_types
 
-from ..tools import ViaCEPTool, PokemonTool, IBGETool, OpenMeteoTool, TVMazeTool, OpenLibraryTool
+from ..tools import ViaCEPTool, PokemonTool, IBGETool, OpenMeteoTool, TVMazeTool, OpenLibraryTool, LyricsOvhTool
 from ..vectorstore import ChromaVectorStore
 from .prompt_manager import PromptManager
 
@@ -35,7 +35,8 @@ class Chatbot:
             "ibge": IBGETool(),
             "clima": OpenMeteoTool(),
             "serie": TVMazeTool(),
-            "livro": OpenLibraryTool()
+            "livro": OpenLibraryTool(),
+            "letra": LyricsOvhTool()
         }
         
         # Define funções para o Gemini (formato correto)
@@ -123,6 +124,24 @@ class Chatbot:
                     },
                     required=["consulta"]
                 )
+            ),
+            genai.protos.FunctionDeclaration(
+                name="consultar_letra_musica",
+                description="Consulta letras de músicas. Use quando o usuário perguntar sobre letras de músicas, pedir para ver a letra de uma música específica.",
+                parameters=genai.protos.Schema(
+                    type=genai.protos.Type.OBJECT,
+                    properties={
+                        "artista": genai.protos.Schema(
+                            type=genai.protos.Type.STRING,
+                            description="Nome do artista ou banda (ex: 'Coldplay', 'The Beatles', 'Legião Urbana', 'Queen')"
+                        ),
+                        "musica": genai.protos.Schema(
+                            type=genai.protos.Type.STRING,
+                            description="Nome da música (ex: 'Yellow', 'Hey Jude', 'Bohemian Rhapsody')"
+                        )
+                    },
+                    required=["artista", "musica"]
+                )
             )
         ]
         
@@ -193,6 +212,14 @@ class Chatbot:
                 result = self.tools_instances["livro"].execute(consulta)
                 formatted = self.tools_instances["livro"].format_result(result)
                 logger.info(f"Function calling: Livro executada para {consulta}")
+                return formatted
+            
+            elif function_name == "consultar_letra_musica":
+                artista = function_args.get("artista", "")
+                musica = function_args.get("musica", "")
+                result = self.tools_instances["letra"].execute(artista, musica)
+                formatted = self.tools_instances["letra"].format_result(result)
+                logger.info(f"Function calling: Letra executada para {artista} - {musica}")
                 return formatted
             
             else:
