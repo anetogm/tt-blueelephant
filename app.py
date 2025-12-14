@@ -271,7 +271,6 @@ def render_feedback_area():
                     st.info(f"**Você perguntou:** {user_msg['content']}")
                     st.success(f"**Assistente respondeu:** {selected_msg['content'][:200]}...")
                 
-                # Formulário de feedback
                 with st.form("feedback_form"):
                     st.markdown("**Avalie a resposta:**")
                     rating = st.slider("Avaliação", 1, 5, 3, 
@@ -283,50 +282,86 @@ def render_feedback_area():
                         height=100
                     )
                     
-                    col1, col2 = st.columns([1, 3])
-                    with col1:
-                        submit = st.form_submit_button("Enviar Feedback", 
-                                                      use_container_width=True)
+                    submit = st.form_submit_button("Enviar Feedback", 
+                                                  use_container_width=True,
+                                                  type="primary")
+                
+                # Processa feedback fora do form
+                if submit:
+                    if not feedback_text.strip():
+                        st.error("Por favor, escreva seu feedback!")
+                    else:
+                        # Registra feedback
+                        feedback_data = st.session_state.feedback_processor.add_feedback(
+                            user_message=user_msg["content"] if user_msg else "",
+                            agent_response=selected_msg["content"],
+                            feedback_text=feedback_text,
+                            rating=rating
+                        )
+                        
+                        st.session_state.feedback_history.append(feedback_data)
+                        st.session_state.prompt_manager.increment_feedback_count()
+                        st.session_state.show_process_button = True
+                        
+                        st.success("Feedback enviado com sucesso!")
+                        st.rerun()
+                
+                # Mostra botão de processar logo abaixo (fora do form anterior)
+                if st.session_state.get('show_process_button', False):
+                    with st.form("process_form"):
+                        st.info("Processar este feedback agora e atualizar o prompt?")
+                        process = st.form_submit_button(
+                            "Processar Feedback e Atualizar Prompt",
+                            type="primary",
+                            use_container_width=True
+                        )
                     
-                    if submit:
-                        if not feedback_text.strip():
-                            st.error("Por favor, escreva seu feedback!")
-                        else:
-                            # Registra feedback
-                            feedback_data = st.session_state.feedback_processor.add_feedback(
-                                user_message=user_msg["content"] if user_msg else "",
-                                agent_response=selected_msg["content"],
-                                feedback_text=feedback_text,
-                                rating=rating
+                    # Processa fora do form para mostrar mensagens
+                    if process:
+                        with st.spinner("Analisando feedbacks e melhorando prompt..."):
+                            current_prompt = st.session_state.prompt_manager.get_current_prompt()
+                            new_prompt, improvements = st.session_state.feedback_processor.analyze_feedbacks(
+                                current_prompt,
+                                recent_count=3
                             )
                             
-                            st.session_state.feedback_history.append(feedback_data)
-                            st.session_state.prompt_manager.increment_feedback_count()
-                            
-                            st.success("Feedback enviado com sucesso!")
-                            
-                            # Opção de processar feedback imediatamente
-                            if st.checkbox("Processar feedback agora e atualizar prompt?"):
-                                with st.spinner("Analisando feedbacks e melhorando prompt..."):
-                                    current_prompt = st.session_state.prompt_manager.get_current_prompt()
-                                    new_prompt, improvements = st.session_state.feedback_processor.analyze_feedbacks(
-                                        current_prompt,
-                                        recent_count=3
-                                    )
-                                    
-                                    if new_prompt != current_prompt:
-                                        new_version = st.session_state.prompt_manager.update_prompt(
-                                            new_prompt,
-                                            improvements
-                                        )
-                                        st.success(f"Prompt atualizado para versão {new_version}!")
-                                        
-                                        with st.expander("Ver melhorias aplicadas"):
-                                            for imp in improvements:
-                                                st.markdown(f"- {imp}")
-                                    else:
-                                        st.info("Nenhuma melhoria significativa identificada no momento.")
-    
+                            if new_prompt != current_prompt:
+                                new_version = st.session_state.prompt_manager.update_prompt(
+                                    new_prompt,
+                                    improvements
+                                )
+                                
+                                # Salva resultado para mostrar após rerun
+                                st.session_state.last_update_result = {
+                                    'success': True,
+                                    'version': new_version,
+                                    'improvements': improvements
+                                }
+                                st.session_state.show_process_button = False
+                                st.rerun()
+                            else:
+                                st.session_state.last_update_result = {
+                                    'success': False,
+                                    'message': 'Nenhuma melhoria significativa identificada no momento.'
+                                }
+                                st.session_state.show_process_button = False
+                                st.rerun()
+                
+                # Mostra resultado do último processamento (após rerun)
+                if 'last_update_result' in st.session_state:
+                    result = st.session_state.last_update_result
+                    
+                    if result.get('success'):
+                        st.success(f"Prompt atualizado para versão {result['version']}!")
+                        
+                        with st.expander("Ver melhorias aplicadas", expanded=True):
+                            for imp in result.get('improvements', []):
+                                st.markdown(f"- {imp}")
+                    else:
+                        st.info(result.get('message', 'Processamento concluído'))
+                    
+                    # Limpa resultado após mostrar
+                    del st.session_state.last_update_result
     with tab2:
         st.markdown("### Histórico de Feedbacks")
         
