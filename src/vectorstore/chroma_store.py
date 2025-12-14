@@ -52,9 +52,9 @@ class ChromaVectorStore:
         """Inicializa base de conhecimento com informações padrão"""
         knowledge_items = [
             {
-                "content": "O assistente pode consultar CEPs brasileiros usando a ferramenta de consulta ViaCEP. "
+                "content": "O assistente pode consultar CEPs brasileiros usando a ferramenta ViaCEP. "
                           "Basta fornecer um CEP de 8 dígitos e o sistema retornará informações completas sobre o endereço.",
-                "metadata": {"category": "tools", "type": "cep"}
+                "metadata": {"category": "tools", "type": "viacep"}
             },
             {
                 "content": "O assistente possui acesso à PokéAPI para fornecer informações detalhadas sobre Pokémon. "
@@ -62,8 +62,33 @@ class ChromaVectorStore:
                 "metadata": {"category": "tools", "type": "pokemon"}
             },
             {
-                "content": "Este sistema utiliza inteligência artificial com o modelo Gemini do Google. "
-                          "O agente pode responder perguntas gerais, usar ferramentas externas e aprender com feedbacks.",
+                "content": "O assistente pode consultar dados geográficos do Brasil via IBGE. "
+                          "Pergunte sobre estados, municípios, regiões e códigos IBGE.",
+                "metadata": {"category": "tools", "type": "ibge"}
+            },
+            {
+                "content": "O assistente pode consultar previsão do tempo e clima atual usando Open-Meteo. "
+                          "Pergunte sobre temperatura, clima e previsão para qualquer cidade do mundo.",
+                "metadata": {"category": "tools", "type": "clima"}
+            },
+            {
+                "content": "O assistente pode consultar informações sobre séries de TV usando TVMaze. "
+                          "Pergunte sobre séries, episódios, atores e ratings.",
+                "metadata": {"category": "tools", "type": "series"}
+            },
+            {
+                "content": "O assistente pode consultar informações sobre livros usando Open Library. "
+                          "Pergunte sobre livros, autores, ISBN e sinopses.",
+                "metadata": {"category": "tools", "type": "livros"}
+            },
+            {
+                "content": "O assistente pode buscar letras de músicas usando Lyrics.ovh. "
+                          "Pergunte sobre letras fornecendo o nome da música e do artista.",
+                "metadata": {"category": "tools", "type": "letras"}
+            },
+            {
+                "content": "Este sistema utiliza inteligência artificial com o modelo Gemini 2.5 Flash do Google. "
+                          "O agente usa function calling nativo para decidir automaticamente quando usar ferramentas externas.",
                 "metadata": {"category": "system", "type": "capabilities"}
             },
             {
@@ -71,17 +96,6 @@ class ChromaVectorStore:
                           "continuamente as respostas do assistente. Feedbacks são analisados automaticamente "
                           "e incorporados ao prompt do agente.",
                 "metadata": {"category": "system", "type": "feedback"}
-            },
-            {
-                "content": "Para consultar um CEP, simplesmente mencione o número do CEP na conversa. "
-                          "Exemplo: 'Qual o endereço do CEP 01310-100?'",
-                "metadata": {"category": "examples", "type": "cep"}
-            },
-            {
-                "content": "Para consultar informações sobre Pokémon, mencione o nome ou número. "
-                          "Exemplos: 'Me fale sobre o Pikachu', 'Quais são as estatísticas do Charizard?', "
-                          "'Mostre o Pokémon número 25'",
-                "metadata": {"category": "examples", "type": "pokemon"}
             }
         ]
         
