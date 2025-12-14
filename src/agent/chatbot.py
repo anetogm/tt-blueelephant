@@ -7,7 +7,7 @@ from typing import List, Dict, Optional
 import google.generativeai as genai
 from google.generativeai.types import content_types
 
-from ..tools import ViaCEPTool, PokemonTool, IBGETool, OpenMeteoTool, TVMazeTool
+from ..tools import ViaCEPTool, PokemonTool, IBGETool, OpenMeteoTool, TVMazeTool, OpenLibraryTool
 from ..vectorstore import ChromaVectorStore
 from .prompt_manager import PromptManager
 
@@ -34,7 +34,8 @@ class Chatbot:
             "pokemon": PokemonTool(),
             "ibge": IBGETool(),
             "clima": OpenMeteoTool(),
-            "serie": TVMazeTool()
+            "serie": TVMazeTool(),
+            "livro": OpenLibraryTool()
         }
         
         # Define funções para o Gemini (formato correto)
@@ -108,6 +109,20 @@ class Chatbot:
                     },
                     required=["nome"]
                 )
+            ),
+            genai.protos.FunctionDeclaration(
+                name="consultar_livro",
+                description="Consulta informações sobre livros. Use quando o usuário perguntar sobre livros, obras literárias, autores, ISBN.",
+                parameters=genai.protos.Schema(
+                    type=genai.protos.Type.OBJECT,
+                    properties={
+                        "consulta": genai.protos.Schema(
+                            type=genai.protos.Type.STRING,
+                            description="Nome do livro ou autor (ex: '1984', 'Harry Potter', 'Machado de Assis', 'The Great Gatsby')"
+                        )
+                    },
+                    required=["consulta"]
+                )
             )
         ]
         
@@ -171,6 +186,13 @@ class Chatbot:
                 result = self.tools_instances["serie"].execute(nome)
                 formatted = self.tools_instances["serie"].format_result(result)
                 logger.info(f"Function calling: Série executada para {nome}")
+                return formatted
+            
+            elif function_name == "consultar_livro":
+                consulta = function_args.get("consulta", "")
+                result = self.tools_instances["livro"].execute(consulta)
+                formatted = self.tools_instances["livro"].format_result(result)
+                logger.info(f"Function calling: Livro executada para {consulta}")
                 return formatted
             
             else:

@@ -151,6 +151,7 @@ def render_sidebar():
         - **PokéAPI**: Informações sobre Pokémon
         - **IBGE**: Dados de estados e municípios do Brasil
         - **Open-Meteo**: Clima atual e previsão do tempo
+        - **Open Library**: Informações sobre livros e autores
         - **TVMaze**: Informações sobre séries de TV
         """)
         
