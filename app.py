@@ -174,7 +174,7 @@ def render_chat_area():
     
     # Exibe histórico
     with chat_container:
-        for msg in st.session_state.messages:
+        for i, msg in enumerate(st.session_state.messages):
             if msg["role"] == "user":
                 st.markdown(f"""
                 <div class="chat-message user-message">
@@ -183,21 +183,21 @@ def render_chat_area():
                 </div>
                 """, unsafe_allow_html=True)
             else:
-                # Mostra output de ferramentas se houver
-                if msg.get("tools_output"):
-                    st.markdown(f"""
-                    <div class="tool-output">
-                        <strong>Ferramentas:</strong><br>
-                        {msg["tools_output"]}
-                    </div>
-                    """, unsafe_allow_html=True)
-                
+                # Mostra resposta do assistente
                 st.markdown(f"""
                 <div class="chat-message assistant-message">
                     <strong>Assistente:</strong><br>
                     {msg["content"]}
                 </div>
                 """, unsafe_allow_html=True)
+                
+                # Se houver ferramentas usadas, mostra em expander
+                if msg.get("tools_output"):
+                    tools_used_names = [tool[0] for tool in msg.get("tools_used", [])]
+                    tools_label = ", ".join(tools_used_names) if tools_used_names else "Ferramentas"
+                    
+                    with st.expander(f"🔧 Ver detalhes da ferramenta: {tools_label}", expanded=False):
+                        st.markdown(msg["tools_output"])
     
     # Input do usuário
     st.markdown("---")

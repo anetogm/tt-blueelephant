@@ -263,8 +263,10 @@ Responda de forma natural e útil, incorporando as informações das ferramentas
     
     def get_statistics(self) -> Dict:
         """Retorna estatísticas do chatbot"""
+        user_messages = [msg for msg in self.chat_history if msg["role"] == "user"]
+    
         return {
-            "messages_count": len(self.chat_history),
+            "messages_count": len(user_messages),  # Agora conta só perguntas do usuário
             "prompt_version": self.prompt_manager.get_current_version(),
             "vector_store": self.vector_store.get_statistics()
         }
