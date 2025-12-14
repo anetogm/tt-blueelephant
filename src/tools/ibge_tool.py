@@ -217,19 +217,19 @@ Exemplo de uso:
             String formatada para exibição
         """
         if result.get("error"):
-            return f"❌ **Erro**: {result.get('message', 'Erro desconhecido')}"
+            return f"**Erro**: {result.get('message', 'Erro desconhecido')}"
         
         result_type = result.get("type")
         
         if result_type == "estado":
-            return f"""📍 **{result['nome']} ({result['sigla']})**
+            return f"""**{result['nome']} ({result['sigla']})**
 
 • **Região**: {result['regiao']['nome']}
 • **Sigla da Região**: {result['regiao']['sigla']}
 • **Código IBGE**: {result['id']}"""
         
         elif result_type == "municipio":
-            return f"""🏙️ **{result['nome']} - {result['estado']['sigla']}**
+            return f"""**{result['nome']} - {result['estado']['sigla']}**
 
 • **Código IBGE**: {result['codigo_ibge']}
 • **Estado**: {result['estado']['nome']} ({result['estado']['sigla']})
@@ -239,7 +239,7 @@ Exemplo de uso:
         
         elif result_type == "municipios_multiplos":
             opcoes = '\n'.join([f"  - {opt}" for opt in result['opcoes']])
-            return f"""🔍 **Múltiplos municípios encontrados**
+            return f"""**Múltiplos municípios encontrados**
 
 {result['message']}
 

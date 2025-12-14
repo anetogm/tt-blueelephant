@@ -7,7 +7,7 @@ from typing import List, Dict, Optional
 import google.generativeai as genai
 from google.generativeai.types import content_types
 
-from ..tools import ViaCEPTool, PokemonTool, IBGETool, OpenMeteoTool
+from ..tools import ViaCEPTool, PokemonTool, IBGETool, OpenMeteoTool, TVMazeTool
 from ..vectorstore import ChromaVectorStore
 from .prompt_manager import PromptManager
 
@@ -33,7 +33,8 @@ class Chatbot:
             "viacep": ViaCEPTool(),
             "pokemon": PokemonTool(),
             "ibge": IBGETool(),
-            "clima": OpenMeteoTool()
+            "clima": OpenMeteoTool(),
+            "serie": TVMazeTool()
         }
         
         # Define funções para o Gemini (formato correto)
@@ -93,6 +94,20 @@ class Chatbot:
                     },
                     required=["local"]
                 )
+            ),
+            genai.protos.FunctionDeclaration(
+                name="consultar_serie",
+                description="Consulta informações sobre séries de TV. Use quando o usuário perguntar sobre séries, programas de TV, shows.",
+                parameters=genai.protos.Schema(
+                    type=genai.protos.Type.OBJECT,
+                    properties={
+                        "nome": genai.protos.Schema(
+                            type=genai.protos.Type.STRING,
+                            description="Nome da série de TV (ex: 'Breaking Bad', 'Game of Thrones', 'The Office', 'Stranger Things')"
+                        )
+                    },
+                    required=["nome"]
+                )
             )
         ]
         
@@ -149,6 +164,13 @@ class Chatbot:
                 result = self.tools_instances["clima"].execute(local)
                 formatted = self.tools_instances["clima"].format_result(result)
                 logger.info(f"Function calling: Clima executada para {local}")
+                return formatted
+            
+            elif function_name == "consultar_serie":
+                nome = function_args.get("nome", "")
+                result = self.tools_instances["serie"].execute(nome)
+                formatted = self.tools_instances["serie"].format_result(result)
+                logger.info(f"Function calling: Série executada para {nome}")
                 return formatted
             
             else:

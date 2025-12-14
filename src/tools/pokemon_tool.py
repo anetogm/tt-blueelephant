@@ -136,9 +136,9 @@ Exemplos de uso:
             String formatada para exibição
         """
         if result.get("error"):
-            return f"❌ {result.get('message', 'Erro desconhecido')}"
+            return f"{result.get('message', 'Erro desconhecido')}"
         
-        output = f"⚡ **{result['name']} (#{result['id']:03d})**\n\n"
+        output = f"**{result['name']} (#{result['id']:03d})**\n\n"
         
         # Tipos
         types_str = " / ".join(result.get("types", []))

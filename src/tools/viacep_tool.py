@@ -132,9 +132,9 @@ Exemplo de uso: consultar o CEP 01310-100"""
             String formatada para exibição
         """
         if result.get("error"):
-            return f"❌ {result.get('message', 'Erro desconhecido')}"
+            return f"{result.get('message', 'Erro desconhecido')}"
         
-        output = f"📍 **Informações do CEP {result['cep']}**\n\n"
+        output = f"**Informações do CEP {result['cep']}**\n\n"
         
         if result.get("logradouro"):
             output += f"**Logradouro:** {result['logradouro']}\n"
