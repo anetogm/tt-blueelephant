@@ -3,9 +3,9 @@ Chatbot principal com integração de LLM, ferramentas e vector store
 """
 
 import logging
-import re
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional
 import google.generativeai as genai
+from google.generativeai.types import content_types
 
 from ..tools import ViaCEPTool, PokemonTool, IBGETool
 from ..vectorstore import ChromaVectorStore
@@ -27,150 +27,115 @@ class Chatbot:
         """
         # Configura Gemini
         genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-2.5-flash')
-        
-        # Inicializa componentes
-        self.prompt_manager = PromptManager(data_dir)
-        self.vector_store = ChromaVectorStore(f"{data_dir}/chroma")
         
         # Inicializa ferramentas
-        self.tools = {
+        self.tools_instances = {
             "viacep": ViaCEPTool(),
             "pokemon": PokemonTool(),
             "ibge": IBGETool()
         }
         
+        # Define funções para o Gemini (formato correto)
+        self.tools = [
+            genai.protos.FunctionDeclaration(
+                name="consultar_cep",
+                description="Consulta informações de endereço a partir de um CEP brasileiro. Use quando o usuário mencionar CEP, endereço, ou fornecer um código postal de 8 dígitos.",
+                parameters=genai.protos.Schema(
+                    type=genai.protos.Type.OBJECT,
+                    properties={
+                        "cep": genai.protos.Schema(
+                            type=genai.protos.Type.STRING,
+                            description="CEP brasileiro com 8 dígitos (pode ter hífen ou não). Exemplo: 01310-100 ou 01310100"
+                        )
+                    },
+                    required=["cep"]
+                )
+            ),
+            genai.protos.FunctionDeclaration(
+                name="consultar_pokemon",
+                description="Consulta informações sobre um Pokémon específico da PokéAPI. Use quando o usuário perguntar sobre Pokémon, mencionar nomes de Pokémon ou números da Pokédex.",
+                parameters=genai.protos.Schema(
+                    type=genai.protos.Type.OBJECT,
+                    properties={
+                        "identificador": genai.protos.Schema(
+                            type=genai.protos.Type.STRING,
+                            description="Nome do Pokémon (em inglês minúsculo, ex: 'pikachu') ou número da Pokédex (ex: '25')"
+                        )
+                    },
+                    required=["identificador"]
+                )
+            ),
+            genai.protos.FunctionDeclaration(
+                name="consultar_ibge",
+                description="Consulta informações geográficas do Brasil via IBGE. Use quando o usuário perguntar sobre estados brasileiros, municípios, cidades, regiões ou siglas de UF.",
+                parameters=genai.protos.Schema(
+                    type=genai.protos.Type.OBJECT,
+                    properties={
+                        "consulta": genai.protos.Schema(
+                            type=genai.protos.Type.STRING,
+                            description="Nome do estado (ex: 'São Paulo' ou 'SP'), município (ex: 'Campinas') ou sigla da UF (ex: 'RJ')"
+                        )
+                    },
+                    required=["consulta"]
+                )
+            )
+        ]
+        
+        # Inicializa modelo com function calling
+        self.model = genai.GenerativeModel(
+            'gemini-2.5-flash',
+            tools=self.tools
+        )
+        
+        # Inicializa componentes
+        self.prompt_manager = PromptManager(data_dir)
+        self.vector_store = ChromaVectorStore(f"{data_dir}/chroma")
+        
         # Histórico da conversa atual
         self.chat_history: List[Dict[str, str]] = []
         
-        logger.info("Chatbot inicializado com sucesso")
+        logger.info("Chatbot inicializado com function calling")
     
-    def _detect_tool_usage(self, user_message: str) -> List[Tuple[str, str]]:
+    def _execute_function_call(self, function_name: str, function_args: Dict) -> str:
         """
-        Detecta se ferramentas devem ser usadas na mensagem
+        Executa uma função chamada pelo modelo
         
         Args:
-            user_message: Mensagem do usuário
+            function_name: Nome da função a executar
+            function_args: Argumentos da função
             
         Returns:
-            Lista de tuplas (nome_ferramenta, parâmetro)
+            String com resultado formatado
         """
-        tools_to_use = []
-        message_lower = user_message.lower()
-        
-        # Detecta CEP (formato: 00000-000 ou 00000000)
-        cep_pattern = r'\b\d{5}-?\d{3}\b'
-        ceps = re.findall(cep_pattern, user_message)
-        for cep in ceps:
-            tools_to_use.append(("viacep", cep))
-        
-        # Detecta menções a CEP/endereço
-        cep_keywords = ["cep", "endereço", "endereco", "logradouro", "rua"]
-        if any(keyword in message_lower for keyword in cep_keywords) and not ceps:
-            # Tenta extrair números que podem ser CEP
-            numbers = re.findall(r'\b\d{5,8}\b', user_message)
-            for num in numbers:
-                if len(num) in [5, 8]:
-                    tools_to_use.append(("viacep", num))
-        
-        # Detecta menções a Pokémon
-        pokemon_keywords = ["pokemon", "pokémon", "pikachu", "charizard", 
-                          "bulbasaur", "pokedex", "pokédex"]
-        if any(keyword in message_lower for keyword in pokemon_keywords):
-            # Tenta extrair nome ou número do Pokémon
-            # Remove palavras comuns
-            words = message_lower.split()
-            for word in words:
-                # Se for número pequeno, pode ser número da pokédex
-                if word.isdigit() and int(word) < 1000:
-                    tools_to_use.append(("pokemon", word))
-                    break
+        try:
+            if function_name == "consultar_cep":
+                cep = function_args.get("cep", "")
+                result = self.tools_instances["viacep"].execute(cep)
+                formatted = self.tools_instances["viacep"].format_result(result)
+                logger.info(f"Function calling: ViaCEP executada para {cep}")
+                return formatted
+                
+            elif function_name == "consultar_pokemon":
+                identificador = function_args.get("identificador", "")
+                result = self.tools_instances["pokemon"].execute(identificador)
+                formatted = self.tools_instances["pokemon"].format_result(result)
+                logger.info(f"Function calling: Pokemon executada para {identificador}")
+                return formatted
+                
+            elif function_name == "consultar_ibge":
+                consulta = function_args.get("consulta", "")
+                result = self.tools_instances["ibge"].execute(consulta)
+                formatted = self.tools_instances["ibge"].format_result(result)
+                logger.info(f"Function calling: IBGE executada para {consulta}")
+                return formatted
+            
             else:
-                # Tenta encontrar nome de Pokémon comum
-                common_pokemon = ["pikachu", "charizard", "bulbasaur", "squirtle",
-                                "charmander", "mewtwo", "mew", "eevee", "snorlax"]
-                for pokemon in common_pokemon:
-                    if pokemon in message_lower:
-                        tools_to_use.append(("pokemon", pokemon))
-                        break
-                    
-        ibge_keywords = ["estado", "município", "municipio", "cidade", "ibge", 
-                        "região", "regiao", "uf", "brasil"]
-        
-        # Lista de UFs e alguns estados comuns
-        ufs = ["ac", "al", "ap", "am", "ba", "ce", "df", "es", "go", "ma", 
-               "mt", "ms", "mg", "pa", "pb", "pr", "pe", "pi", "rj", "rn", 
-               "rs", "ro", "rr", "sc", "sp", "se", "to"]
-        
-        estados_comuns = ["são paulo", "rio de janeiro", "minas gerais", "bahia",
-                         "paraná", "santa catarina", "rio grande do sul"]
-        
-        # Verifica se menciona IBGE ou conceitos geográficos
-        if any(keyword in message_lower for keyword in ibge_keywords):
-            # Procura por UF
-            words = message_lower.split()
-            for word in words:
-                clean_word = word.strip('.,!?')
-                if clean_word in ufs:
-                    tools_to_use.append(("ibge", clean_word.upper()))
-                    break
-            
-            # Procura por nome de estado/cidade
-            for estado in estados_comuns:
-                if estado in message_lower:
-                    tools_to_use.append(("ibge", estado.title()))
-                    break
-            
-            # Se não encontrou mas tem keywords, tenta extrair possível nome
-            if not any(t[0] == "ibge" for t in tools_to_use):
-                # Pega palavras capitalizadas que podem ser cidades/estados
-                words_orig = user_message.split()
-                for word in words_orig:
-                    if word and word[0].isupper() and len(word) > 3:
-                        clean = word.strip('.,!?')
-                        if clean.lower() not in ibge_keywords:
-                            tools_to_use.append(("ibge", clean))
-                            break
-        
-        return tools_to_use
-    
-    def _execute_tools(self, tools_to_use: List[Tuple[str, str]]) -> str:
-        """
-        Executa ferramentas detectadas
-        
-        Args:
-            tools_to_use: Lista de ferramentas a executar
-            
-        Returns:
-            String com resultados formatados
-        """
-        results = []
-        
-        for tool_name, param in tools_to_use:
-            try:
-                if tool_name == "viacep":
-                    result = self.tools["viacep"].execute(param)
-                    formatted = self.tools["viacep"].format_result(result)
-                    results.append(formatted)
-                    logger.info(f"Ferramenta ViaCEP executada: {param}")
-                    
-                elif tool_name == "pokemon":
-                    result = self.tools["pokemon"].execute(param)
-                    formatted = self.tools["pokemon"].format_result(result)
-                    results.append(formatted)
-                    logger.info(f"Ferramenta Pokémon executada: {param}")
-                    
-                elif tool_name == "ibge":
-                    result = self.tools["ibge"].execute(param)
-                    formatted = self.tools["ibge"].format_result(result)
-                    results.append(formatted)
-                    logger.info(f"Ferramenta IBGE executada: {param}")
-                    
-            except Exception as e:
-                logger.error(f"Erro ao executar ferramenta {tool_name}: {e}")
-                results.append(f"Erro ao executar {tool_name}: {str(e)}")
-        
-        return "\n\n".join(results) if results else ""
+                logger.warning(f"Função desconhecida: {function_name}")
+                return f"Função '{function_name}' não reconhecida"
+                
+        except Exception as e:
+            logger.error(f"Erro ao executar função {function_name}: {e}")
+            return f"⚠️ Erro ao executar {function_name}: {str(e)}"
     
     def _get_context_from_vectorstore(self, user_message: str) -> str:
         """
@@ -196,7 +161,7 @@ class Chatbot:
             if knowledge:
                 context_parts.append("Conhecimento relevante:")
                 for item in knowledge:
-                    if item["similarity"] > 0.5:  # Apenas itens relevantes
+                    if item["similarity"] > 0.5:
                         context_parts.append(f"- {item['content']}")
             
             if similar_convs:
@@ -213,7 +178,7 @@ class Chatbot:
     
     def chat(self, user_message: str) -> Dict:
         """
-        Processa mensagem do usuário e gera resposta
+        Processa mensagem do usuário e gera resposta usando function calling
         
         Args:
             user_message: Mensagem do usuário
@@ -222,14 +187,6 @@ class Chatbot:
             Dicionário com resposta e informações adicionais
         """
         try:
-            # Detecta ferramentas a usar
-            tools_to_use = self._detect_tool_usage(user_message)
-            
-            # Executa ferramentas se necessário
-            tools_output = ""
-            if tools_to_use:
-                tools_output = self._execute_tools(tools_to_use)
-            
             # Busca contexto no vector store
             vector_context = self._get_context_from_vectorstore(user_message)
             
@@ -239,26 +196,58 @@ class Chatbot:
             # Prepara histórico de conversa
             history_text = "\n".join([
                 f"{'Usuário' if msg['role'] == 'user' else 'Assistente'}: {msg['content']}"
-                for msg in self.chat_history[-5:]  # Últimas 5 mensagens
+                for msg in self.chat_history[-5:]
             ])
             
-            # Monta prompt final
-            full_prompt = f"""{system_prompt}
+            # Monta prompt com contexto
+            full_message = f"""{system_prompt}
 
-{'CONTEXTO DA BASE DE CONHECIMENTO:' + chr(10) + vector_context if vector_context else ''}
+{f'CONTEXTO DA BASE DE CONHECIMENTO:{chr(10)}{vector_context}' if vector_context else ''}
 
-{'RESULTADOS DAS FERRAMENTAS:' + chr(10) + tools_output if tools_output else ''}
-
-{'HISTÓRICO RECENTE:' + chr(10) + history_text if history_text else ''}
+{f'HISTÓRICO RECENTE:{chr(10)}{history_text}' if history_text else ''}
 
 MENSAGEM DO USUÁRIO:
-{user_message}
-
-Responda de forma natural e útil, incorporando as informações das ferramentas se disponíveis:"""
+{user_message}"""
             
-            # Gera resposta com Gemini
-            response = self.model.generate_content(full_prompt)
-            agent_response = response.text
+            # Primeira chamada ao modelo (pode retornar function calls)
+            response = self.model.generate_content(full_message)
+            
+            # Verifica se há function calls
+            tools_used = []
+            tools_output = ""
+            
+            if response.candidates and response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    # Se há function call
+                    if hasattr(part, 'function_call') and part.function_call:
+                        function_call = part.function_call
+                        function_name = function_call.name
+                        function_args = dict(function_call.args)
+                        
+                        logger.info(f"Model solicitou function call: {function_name} com args {function_args}")
+                        
+                        # Executa a função
+                        function_result = self._execute_function_call(function_name, function_args)
+                        tools_output += function_result + "\n\n"
+                        tools_used.append((function_name, str(function_args)))
+            
+            # Se houve function calls, faz segunda chamada com os resultados
+            if tools_used:
+                # Constrói mensagem com resultados das ferramentas
+                second_prompt = f"""{full_message}
+
+RESULTADOS DAS FERRAMENTAS:
+{tools_output}
+
+Agora responda ao usuário de forma natural, incorporando essas informações:"""
+                
+                # Segunda chamada ao modelo sem function calling
+                model_no_tools = genai.GenerativeModel('gemini-2.5-flash')
+                final_response = model_no_tools.generate_content(second_prompt)
+                agent_response = final_response.text
+            else:
+                # Não houve function calls, usa resposta direta
+                agent_response = response.text if hasattr(response, 'text') else "Desculpe, não consegui processar sua mensagem."
             
             # Adiciona ao histórico
             self.chat_history.append({"role": "user", "content": user_message})
@@ -269,18 +258,18 @@ Responda de forma natural e útil, incorporando as informações das ferramentas
                 user_message,
                 agent_response,
                 metadata={
-                    "tools_used": [t[0] for t in tools_to_use],
+                    "tools_used": [t[0] for t in tools_used],
                     "has_context": bool(vector_context)
                 }
             )
             
-            logger.info(f"Resposta gerada com sucesso (ferramentas: {len(tools_to_use)})")
+            logger.info(f"Resposta gerada com sucesso (function calls: {len(tools_used)})")
             
             return {
                 "response": agent_response,
-                "tools_used": tools_to_use,
+                "tools_used": tools_used,
                 "has_tools_output": bool(tools_output),
-                "tools_output": tools_output,
+                "tools_output": tools_output.strip(),
                 "has_context": bool(vector_context)
             }
             
@@ -309,9 +298,9 @@ Responda de forma natural e útil, incorporando as informações das ferramentas
     def get_statistics(self) -> Dict:
         """Retorna estatísticas do chatbot"""
         user_messages = [msg for msg in self.chat_history if msg["role"] == "user"]
-    
+        
         return {
-            "messages_count": len(user_messages),  # Agora conta só perguntas do usuário
+            "messages_count": len(user_messages),
             "prompt_version": self.prompt_manager.get_current_version(),
             "vector_store": self.vector_store.get_statistics()
         }
