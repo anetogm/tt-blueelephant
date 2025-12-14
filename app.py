@@ -24,8 +24,7 @@ logger = logging.getLogger(__name__)
 
 # Configuração da página
 st.set_page_config(
-    page_title="Chatbot IA com Feedback Inteligente",
-    page_icon="🤖",
+    page_title="Chatbot com Feedback Inteligente",
     layout="wide",
     initial_sidebar_state="expanded"
 )

@@ -1,26 +1,28 @@
-# 🤖 Chatbot IA com Feedback Inteligente
+# Chatbot IA com Feedback Inteligente
 
 Sistema de chatbot com inteligência artificial que inclui funcionalidades de feedback em tempo real para melhorias contínuas do prompt. Desenvolvido como teste técnico para vaga de estágio em desenvolvimento.
 
-## 📋 Descrição
+## Descrição
 
 Este projeto implementa um assistente virtual inteligente que:
 
-- Conversa naturalmente com usuários usando IA (Google Gemini)
-- Utiliza ferramentas externas (APIs) para fornecer informações específicas
+- Conversa naturalmente com usuários usando IA (Google Gemini 2.5 Flash)
+- Utiliza function calling nativo para integração automática com ferramentas externas
 - Aprende e melhora continuamente através de feedbacks dos usuários
 - Armazena contexto em vector store para respostas mais relevantes
 
-## ✨ Funcionalidades Principais
+## Funcionalidades Principais
 
-### 🗣️ Chat Interativo
+### Chat Interativo
 
 - Interface de chat moderna e responsiva
 - Histórico de mensagens persistente
 - Respostas contextualizadas usando vector store (ChromaDB)
 - Integração automática com ferramentas externas
 
-### 🛠️ Ferramentas Integradas
+### Ferramentas Integradas
+
+O sistema utiliza **function calling nativo do Google Gemini**, que permite ao modelo decidir automaticamente quando usar cada ferramenta:
 
 1. **ViaCEP** - Consulta de CEPs brasileiros
 
@@ -28,10 +30,39 @@ Este projeto implementa um assistente virtual inteligente que:
    - Informações: logradouro, bairro, cidade, UF, DDD
 
 2. **PokéAPI** - Informações sobre Pokémon
+
    - Consulta por nome ou número da Pokédex
    - Dados: tipos, habilidades, estatísticas, altura, peso
 
-### 📝 Sistema de Feedback Inteligente
+3. **IBGE** - Dados geográficos do Brasil
+
+   - Informações sobre estados brasileiros
+   - Dados de municípios e regiões
+   - Códigos IBGE e divisões administrativas
+
+4. **Open-Meteo** - Clima e previsão do tempo
+
+   - Clima atual de qualquer cidade do mundo
+   - Previsão para os próximos 3 dias
+   - Temperatura, umidade, vento e precipitação
+
+5. **TVMaze** - Informações sobre séries de TV
+
+   - Dados detalhados sobre séries
+   - Gêneros, status, ratings e sinopse
+   - Informações de rede e horário de exibição
+
+6. **Open Library** - Informações sobre livros
+
+   - Busca por título ou autor
+   - ISBN, editora, ano de publicação
+   - Categorias e número de páginas
+
+7. **Lyrics.ovh** - Letras de músicas
+   - Busca por artista e música
+   - Letras completas de músicas
+
+### Sistema de Feedback Inteligente
 
 - Captura feedback do usuário sobre respostas do agente
 - Análise automática de feedbacks usando IA
@@ -39,28 +70,34 @@ Este projeto implementa um assistente virtual inteligente que:
 - Histórico completo de versões de prompt
 - Visualização de melhorias aplicadas
 
-### 💾 Vector Store
+### Vector Store
 
 - Armazenamento de contexto usando ChromaDB
 - Busca semântica de conversas anteriores
 - Base de conhecimento sobre capacidades do sistema
 - Recuperação de informações relevantes para contexto
 
-## 🏗️ Arquitetura do Projeto
+## Arquitetura do Projeto
 
 ```
 tt-blueelephant/
 ├── src/
 │   ├── agent/
-│   │   ├── chatbot.py           # Agente principal com LLM
-│   │   └── prompt_manager.py    # Gerenciador de prompts
+│   │   ├── chatbot.py              # Agente principal com LLM e function calling
+│   │   └── prompt_manager.py       # Gerenciador de prompts e versionamento
 │   ├── feedback/
-│   │   └── feedback_processor.py # Processador inteligente de feedback
+│   │   └── feedback_processor.py   # Processador inteligente de feedback
 │   ├── tools/
-│   │   ├── viacep_tool.py       # Ferramenta ViaCEP
-│   │   └── pokemon_tool.py      # Ferramenta PokéAPI
+│   │   ├── viacep_tool.py          # Ferramenta ViaCEP
+│   │   ├── pokemon_tool.py         # Ferramenta PokéAPI
+│   │   ├── ibge_tool.py            # Ferramenta IBGE
+│   │   ├── balldontlie_tool.py     # Ferramenta NBA
+│   │   ├── openmeteo_tool.py       # Ferramenta Open-Meteo
+│   │   ├── tvmaze_tool.py          # Ferramenta TVMaze
+│   │   ├── openlibrary_tool.py     # Ferramenta Open Library
+│   │   └── lyricsovh_tool.py       # Ferramenta Lyrics.ovh
 │   └── vectorstore/
-│       └── chroma_store.py      # Vector store ChromaDB
+│       └── chroma_store.py         # Vector store ChromaDB
 ├── data/                         # Dados persistentes (criado automaticamente)
 ├── tests/                        # Testes unitários
 ├── app.py                        # Aplicação Streamlit
@@ -71,7 +108,7 @@ tt-blueelephant/
 └── README.md                     # Este arquivo
 ```
 
-## 🚀 Instalação e Execução
+## Instalação e Execução
 
 ### Pré-requisitos
 
@@ -180,17 +217,22 @@ docker-compose up -d --build
 docker-compose down -v
 ```
 
-## 📖 Como Usar
+## Como Usar
 
 ### 1. Chat com o Assistente
 
-- Digite sua pergunta no campo de entrada
-- O assistente responderá usando IA e ferramentas quando necessário
-- Exemplos de uso:
-  - "Qual o endereço do CEP 01310-100?"
-  - "Me fale sobre o Pikachu"
-  - "Quais são as estatísticas do Charizard?"
-  - "Como está o tempo hoje?"
+Digite suas perguntas no campo de entrada. O assistente responderá usando IA e ferramentas quando apropriado.
+
+**Exemplos de uso:**
+
+- "Qual o endereço do CEP 01310-100?"
+- "Me fale sobre o Pikachu"
+- "Como está o clima em São Paulo?"
+- "Informações sobre o estado de SP"
+- "Quem é LeBron James?"
+- "Me fale sobre a série Breaking Bad"
+- "Informações sobre o livro 1984"
+- "Letra de Bohemian Rhapsody do Queen"
 
 ### 2. Dar Feedback
 
@@ -213,7 +255,7 @@ docker-compose down -v
 - Aba "Prompt Atual": veja versões anteriores do prompt
 - Estatísticas na barra lateral: métricas em tempo real
 
-## 🧪 Testes
+## Testes
 
 ```bash
 # Instalar dependências de teste
@@ -226,38 +268,82 @@ pytest
 pytest --cov=src tests/
 ```
 
-## 📚 APIs Utilizadas
+## APIs Utilizadas
+
+Todas as APIs utilizadas são **gratuitas e sem necessidade de autenticação** (exceto Google Gemini):
 
 ### Google Gemini API
 
-- **Descrição**: Modelo de linguagem para geração de respostas
+- **Descrição**: Modelo de linguagem para geração de respostas e function calling
 - **Documentação**: https://ai.google.dev/docs
-- **Gratuita**: Sim (com limites)
+- **Requer API Key**: Sim (gratuita com limites)
 
 ### ViaCEP
 
 - **Descrição**: Consulta de CEPs brasileiros
 - **Documentação**: https://viacep.com.br/
-- **Gratuita**: Sim
 - **Exemplo**: `https://viacep.com.br/ws/01310100/json/`
 
 ### PokéAPI
 
 - **Descrição**: Informações sobre Pokémon
 - **Documentação**: https://pokeapi.co/docs/v2
-- **Gratuita**: Sim
 - **Exemplo**: `https://pokeapi.co/api/v2/pokemon/pikachu`
 
-## 🔧 Tecnologias Utilizadas
+### IBGE API
+
+- **Descrição**: Dados geográficos do Brasil
+- **Documentação**: https://servicodados.ibge.gov.br/api/docs
+- **Exemplo**: `https://servicodados.ibge.gov.br/api/v1/localidades/estados/SP`
+
+### Open-Meteo API
+
+- **Descrição**: Previsão do tempo e clima
+- **Documentação**: https://open-meteo.com/
+- **Exemplo**: `https://api.open-meteo.com/v1/forecast`
+
+### TVMaze API
+
+- **Descrição**: Informações sobre séries de TV
+- **Documentação**: https://www.tvmaze.com/api
+- **Exemplo**: `https://api.tvmaze.com/search/shows?q=breaking+bad`
+
+### Open Library API
+
+- **Descrição**: Informações sobre livros
+- **Documentação**: https://openlibrary.org/developers/api
+- **Exemplo**: `https://openlibrary.org/search.json?q=1984`
+
+### Lyrics.ovh API
+
+- **Descrição**: Letras de músicas
+- **Documentação**: https://lyricsovh.docs.apiary.io/
+- **Exemplo**: `https://api.lyrics.ovh/v1/coldplay/yellow`
+
+## Tecnologias Utilizadas
+
+### Backend
 
 - **Python 3.11**: Linguagem principal
-- **Streamlit**: Framework para interface web
-- **Google Gemini**: Modelo de linguagem (LLM)
-- **ChromaDB**: Vector store para embeddings
-- **Docker**: Containerização
+- **Google Gemini 2.5 Flash**: Modelo de linguagem com function calling
+- **ChromaDB**: Vector store para embeddings e busca semântica
 - **Requests**: Cliente HTTP para APIs externas
 
-## 📊 Estrutura de Dados
+### Frontend
+
+- **Streamlit**: Framework para interface web interativa
+
+### DevOps
+
+- **Docker**: Containerização da aplicação
+- **Docker Compose**: Orquestração de containers
+
+### Testes
+
+- **pytest**: Framework de testes
+- **pytest-cov**: Cobertura de código
+
+## Estrutura de Dados
 
 ### Prompts History (`data/prompts_history.json`)
 
@@ -289,38 +375,66 @@ pytest --cov=src tests/
 ]
 ```
 
-## 🎯 Diferenciais Implementados
+## Diferenciais Implementados
 
-✅ **Testes Unitários**: Cobertura de componentes principais  
-✅ **Documentação Clara**: Código comentado e docstrings  
-✅ **README Completo**: Instruções detalhadas de uso  
-✅ **Tratamento de Erros**: Try-catch em operações críticas  
-✅ **Logs Estruturados**: Sistema de logging configurável  
-✅ **Dockerização Completa**: Dockerfile + docker-compose  
-✅ **Vector Store**: ChromaDB para contexto semântico  
-✅ **Feedback Inteligente**: Análise automática com IA
+**Requisitos Obrigatórios**
 
-## 🔐 Segurança e Boas Práticas
+- Interface Streamlit com separação clara de áreas
+- LLM Google Gemini integrado
+- Vector Store ChromaDB para contexto
+- 8 ferramentas externas via APIs gratuitas
+- Sistema de feedback inteligente funcional
+- Atualização automática de prompts
+- Dockerização completa (Dockerfile + docker-compose.yml)
+- Python 3.9+
 
-- ✅ API keys em variáveis de ambiente
-- ✅ `.gitignore` configurado para dados sensíveis
-- ✅ Timeout em requisições HTTP
-- ✅ Validação de inputs
-- ✅ Tratamento de exceções
-- ✅ Health checks no Docker
+**Diferenciais**
 
-## 🚧 Melhorias Futuras
+- Testes unitários com pytest e cobertura
+- Documentação clara e completa do código
+- README estruturado com exemplos
+- Tratamento robusto de erros em todas as operações
+- Logs estruturados para debugging
+- Function calling nativo do Gemini (mais preciso que regex)
+- Base de conhecimento inicializada automaticamente
+- Persistência de dados entre sessões
 
-- [ ] Autenticação de usuários
-- [ ] Persistência de sessões entre reloads
-- [ ] Mais ferramentas externas (clima, notícias, etc.)
-- [ ] Suporte a múltiplos idiomas
-- [ ] Análise de sentimento dos feedbacks
-- [ ] Exportação de conversas
-- [ ] API REST para integração externa
-- [ ] Testes end-to-end
+## Segurança e Boas Práticas
 
-## 📝 Decisões de Design
+- API keys em variáveis de ambiente (.env)
+- .gitignore configurado para dados sensíveis
+- Timeout em todas as requisições HTTP
+- Validação de inputs do usuário
+- Tratamento de exceções em operações críticas
+- Health checks no Docker
+- Logs estruturados para auditoria
+- Separação de responsabilidades (SRP)
+- Type hints em todo o código Python
+
+## Melhorias Futuras
+
+- Autenticação de usuários multi-tenant
+- Persistência de sessões entre reloads
+- Cache de respostas de APIs externas
+- Suporte a múltiplos idiomas
+- Análise de sentimento dos feedbacks
+- Exportação de conversas (PDF/JSON)
+- API REST para integração externa
+- Testes end-to-end com Selenium
+- Dashboard de analytics
+- Rate limiting para APIs
+
+## Decisões de Design
+
+### Function Calling vs Regex
+
+Optei por usar **function calling nativo do Google Gemini** ao invés de detecção manual (regex) porque:
+
+- O LLM entende contexto e decide quando usar cada ferramenta
+- Elimina ~150 linhas de código de detecção manual
+- Mais preciso e flexível
+- Fácil adicionar novas ferramentas (apenas declaração)
+- Reduz manutenção
 
 ### Organização da Interface
 
@@ -343,11 +457,12 @@ Escolhi **ChromaDB** porque:
 
 O sistema processa feedbacks de forma **semi-automática**:
 
-- Usuário pode escolher processar imediatamente ou acumular
+- Usuário escolhe quando processar (imediato ou acumulado)
 - Análise considera múltiplos feedbacks para melhor contexto
-- Prompt é atualizado de forma incremental
+- Prompt é atualizado incrementalmente
+- Histórico completo de versões mantido
 
-## 🤝 Contribuindo
+## Contribuindo
 
 Contribuições são bem-vindas! Por favor:
 
@@ -357,22 +472,23 @@ Contribuições são bem-vindas! Por favor:
 4. Push para a branch (`git push origin feature/MinhaFeature`)
 5. Abra um Pull Request
 
-## 📄 Licença
+## Licença
 
 Este projeto foi desenvolvido como teste técnico e está disponível para fins educacionais.
 
-## 👨‍💻 Autor
+## Autor
 
 Desenvolvido como teste técnico para processo seletivo de estágio em desenvolvimento.
 
-## 📞 Suporte
+## Suporte
 
 Para dúvidas ou problemas:
 
 - Abra uma issue no GitHub
-- Verifique a documentação das APIs utilizadas
-- Revise os logs em `data/app.log`
+- Verifique os logs em `data/app.log`
+- Revise a documentação das APIs utilizadas
+- Consulte a documentação do Google Gemini
 
 ---
 
-**Nota**: Este projeto foi desenvolvido seguindo todas as especificações do teste técnico, incluindo funcionalidades obrigatórias e diferenciais.
+**Nota**: Este projeto atende a todos os requisitos obrigatórios e diferenciais do teste técnico, incluindo funcionalidades extras como function calling nativo, 8 ferramentas integradas e base de conhecimento automática.
