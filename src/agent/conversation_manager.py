@@ -147,13 +147,22 @@ class ConversationManager:
         self.start_new_session()
     
     def get_statistics(self) -> Dict:
-        """Retorna estatísticas do histórico"""
+        """Retorna estatísticas do histórico (apenas respostas da IA)"""
         sessions_with_messages = [s for s in self.sessions if s["message_count"] > 0]
-        total_messages = sum(s["message_count"] for s in sessions_with_messages)
+        
+        # Conta apenas mensagens do assistente
+        total_ai_responses = 0
+        for session in sessions_with_messages:
+            ai_messages = [m for m in session["messages"] if m["role"] == "assistant"]
+            total_ai_responses += len(ai_messages)
+        
+        # Mensagens da IA na sessão atual
+        current_messages = self.get_current_messages()
+        current_ai_messages = len([m for m in current_messages if m["role"] == "assistant"])
         
         return {
             "total_sessions": len(sessions_with_messages),
-            "total_messages": total_messages,
-            "current_session_messages": len(self.get_current_messages()),
+            "total_messages": total_ai_responses,  # Apenas respostas da IA
+            "current_session_messages": current_ai_messages,
             "has_history": len(sessions_with_messages) > 0
         }
