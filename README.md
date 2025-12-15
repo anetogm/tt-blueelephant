@@ -74,6 +74,23 @@ O sistema utiliza **function calling nativo do Google Gemini**, que permite ao m
 - Histórico completo de versões de prompt
 - Visualização de melhorias aplicadas
 
+### Histórico de Conversas
+
+- **Sessões independentes**: Cada vez que você atualiza a página, uma nova sessão é iniciada
+- **Salvamento automático**: Todas as mensagens são salvas automaticamente no histórico permanente
+- **Navegação por sessões**: Visualize conversas anteriores organizadas por sessão
+- **Detalhes completos**: Veja perguntas, respostas e ferramentas utilizadas em cada conversa
+- **Estatísticas**: Acompanhe o total de sessões e respostas do assistente
+- **Exportação**: Exporte o histórico completo em formato JSON
+- **Gerenciamento**: Delete sessões individuais ou limpe todo o histórico
+
+**Recursos:**
+- Filtro de ferramentas usadas por sessão
+- Timestamp de cada conversa
+- Organização cronológica (mais recentes primeiro)
+- Visualização expandível para economizar espaço
+- Botão "Limpar Conversa" inicia nova sessão mantendo histórico
+
 ### Vector Store
 
 - Armazenamento de contexto usando ChromaDB
@@ -233,7 +250,6 @@ Digite suas perguntas no campo de entrada. O assistente responderá usando IA e 
 - "Me fale sobre o Pikachu"
 - "Como está o clima em São Paulo?"
 - "Informações sobre o estado de SP"
-- "Quem é LeBron James?"
 - "Me fale sobre a série Breaking Bad"
 - "Informações sobre o livro 1984"
 - "Letra de Bohemian Rhapsody do Queen"
@@ -253,9 +269,24 @@ Digite suas perguntas no campo de entrada. O assistente responderá usando IA e 
 - Visualize as melhorias aplicadas
 - Verifique a nova versão do prompt na aba "Prompt Atual"
 
-### 4. Visualizar Histórico
+### 4. Visualizar Histórico de Conversas
 
-- Aba "Histórico": veja todos os feedbacks enviados
+- Navegue até a aba "Histórico de Conversas"
+- Veja todas as sessões anteriores organizadas cronologicamente
+- Expanda cada sessão para ver as conversas completas
+- Visualize quais ferramentas foram usadas em cada resposta
+- Exporte o histórico completo clicando em "Exportar Histórico (JSON)"
+- Delete sessões individuais ou limpe todo o histórico
+
+**Recursos disponíveis:**
+- Contador de sessões e respostas totais
+- Detalhes de cada ferramenta utilizada
+- Timestamps de cada conversa
+- Opção de mostrar/ocultar ferramentas usadas
+
+### 5. Visualizar Histórico de Feedbacks e Prompts
+
+- Aba "Histórico Feedbacks": veja todos os feedbacks enviados
 - Aba "Prompt Atual": veja versões anteriores do prompt
 - Estatísticas na barra lateral: métricas em tempo real
 
@@ -378,6 +409,35 @@ Todas as APIs utilizadas são **gratuitas e sem necessidade de autenticação** 
   }
 ]
 ```
+
+### Conversas (`data/conversations.json`)
+
+```json
+{
+  "sessions": [
+    {
+      "session_id": "uuid-aqui",
+      "started_at": "2024-12-15T10:00:00",
+      "last_updated": "2024-12-15T10:15:00",
+      "messages": [
+        {
+          "role": "user",
+          "content": "Qual o clima em São Paulo?",
+          "timestamp": "2024-12-15T10:00:00"
+        },
+        {
+          "role": "assistant",
+          "content": "O clima em São Paulo...",
+          "timestamp": "2024-12-15T10:00:05",
+          "tools_used": [["consulta_clima", "São Paulo"]],
+          "tools_output": "**Resultado da ferramenta..."
+        }
+      ],
+      "message_count": 2
+    }
+  ],
+  "last_updated": "2024-12-15T10:15:00"
+}
 
 ## Diferenciais Implementados
 
