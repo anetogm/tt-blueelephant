@@ -350,27 +350,39 @@ def render_feedback_area():
         st.markdown("### Histórico de Feedbacks")
         
         feedback_stats = st.session_state.feedback_processor.get_statistics()
-        recent_feedbacks = st.session_state.feedback_processor.get_recent_feedbacks(10)
         
-        if not recent_feedbacks:
+        if not st.session_state.feedback_processor.feedbacks:
             st.info("Nenhum feedback registrado ainda.")
         else:
+            # Estatísticas
             st.markdown(f"**Total de feedbacks:** {feedback_stats['total_feedbacks']}")
             st.markdown(f"**Avaliação média:** {feedback_stats['average_rating']:.1f}/5")
             
-            st.markdown("---")
+            # Controle de quantidade a exibir
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.markdown("---")
+            with col2:
+                show_all = st.checkbox("Mostrar todos", value=False)
             
+            # Determina quantos mostrar
+            if show_all:
+                recent_feedbacks = st.session_state.feedback_processor.feedbacks
+            else:
+                recent_feedbacks = st.session_state.feedback_processor.get_recent_feedbacks(10)
+            
+            # Mostra feedbacks (mais recentes primeiro)
             for fb in reversed(recent_feedbacks):
                 with st.expander(
                     f"Feedback #{fb['id']} - "
                     f"{'⭐' * fb['rating']} ({fb['rating']}/5) - "
-                    f"{'Processado' if fb.get('processed') else 'Pendente'}"
+                    f"{'Processado' if fb.get('processed') else '⏳ Pendente'}"
                 ):
                     st.markdown(f"**Data:** {fb['timestamp']}")
                     st.markdown(f"**Usuário perguntou:** {fb['user_message']}")
                     st.markdown(f"**Agente respondeu:** {fb['agent_response'][:200]}...")
                     st.markdown(f"**Feedback:** {fb['feedback_text']}")
-    
+        
     with tab3:
         st.markdown("### Prompt Atual do Sistema")
         
