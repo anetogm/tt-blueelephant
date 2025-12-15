@@ -53,18 +53,9 @@ class FeedbackProcessor:
             logger.error(f"Erro ao salvar feedbacks: {e}")
     
     def add_feedback(self, user_message: str, agent_response: str, 
-                    feedback_text: str, rating: int = 3) -> Dict:
+            feedback_text: str, rating: int = 3) -> Dict:
         """
         Adiciona um novo feedback ao sistema
-        
-        Args:
-            user_message: Mensagem do usuário
-            agent_response: Resposta do agente
-            feedback_text: Texto do feedback
-            rating: Avaliação de 1-5 (opcional)
-            
-        Returns:
-            Dicionário com o feedback registrado
         """
         feedback = {
             "id": len(self.feedbacks) + 1,
@@ -80,8 +71,12 @@ class FeedbackProcessor:
         self._save_feedbacks()
         
         logger.info(f"Feedback #{feedback['id']} adicionado")
-        return feedback
-    
+                
+        return {
+            **feedback,
+            "auto_process": True
+        }
+        
     def get_recent_feedbacks(self, limit: int = 10) -> List[Dict]:
         """
         Retorna feedbacks recentes

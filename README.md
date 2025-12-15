@@ -64,8 +64,12 @@ O sistema utiliza **function calling nativo do Google Gemini**, que permite ao m
 
 ### Sistema de Feedback Inteligente
 
-- Captura feedback do usuário sobre respostas do agente
+- Captura feedback do usuário em tempo real
+- **Processamento automático**: atualiza o prompt automaticamente quando:
+  - Acumula 3 ou mais feedbacks pendentes
+  - Recebe feedbacks muito negativos (média < 3.0)
 - Análise automática de feedbacks usando IA
+- Processamento manual também disponível (botão)
 - Atualização dinâmica do prompt do sistema
 - Histórico completo de versões de prompt
 - Visualização de melhorias aplicadas

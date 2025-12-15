@@ -85,7 +85,6 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-
 def initialize_session_state():
     """Inicializa estado da sessão"""
     if 'initialized' not in st.session_state:
@@ -251,7 +250,7 @@ def render_feedback_area():
             recent_messages = [
                 msg for msg in st.session_state.messages 
                 if msg["role"] == "assistant"
-            ][-5:]  # Últimas 5 respostas
+            ][-5:]
             
             if recent_messages:
                 st.markdown("**Selecione a resposta sobre a qual deseja dar feedback:**")
@@ -305,58 +304,39 @@ def render_feedback_area():
                         
                         st.session_state.feedback_history.append(feedback_data)
                         st.session_state.prompt_manager.increment_feedback_count()
-                        st.session_state.show_process_button = True
                         
                         st.success("Feedback enviado com sucesso!")
-                        st.rerun()
-                
-                # Mostra botão de processar logo abaixo (fora do form anterior)
-                if st.session_state.get('show_process_button', False):
-                    with st.form("process_form"):
-                        st.info("Processar este feedback agora e atualizar o prompt?")
-                        process = st.form_submit_button(
-                            "Processar Feedback e Atualizar Prompt",
-                            type="primary",
-                            use_container_width=True
-                        )
-                    
-                    # Processa fora do form para mostrar mensagens
-                    if process:
-                        with st.spinner("Analisando feedbacks e melhorando prompt..."):
-                            current_prompt = st.session_state.prompt_manager.get_current_prompt()
-                            new_prompt, improvements = st.session_state.feedback_processor.analyze_feedbacks(
-                                current_prompt,
-                                recent_count=3
-                            )
-                            
-                            if new_prompt != current_prompt:
-                                new_version = st.session_state.prompt_manager.update_prompt(
-                                    new_prompt,
-                                    improvements
+                        
+                        if feedback_data.get("auto_process", False):
+                            with st.spinner("Processando feedbacks automaticamente..."):
+                                current_prompt = st.session_state.prompt_manager.get_current_prompt()
+                                new_prompt, improvements = st.session_state.feedback_processor.analyze_feedbacks(
+                                    current_prompt,
+                                    recent_count=3
                                 )
                                 
-                                # Salva resultado para mostrar após rerun
-                                st.session_state.last_update_result = {
-                                    'success': True,
-                                    'version': new_version,
-                                    'improvements': improvements
-                                }
-                                st.session_state.show_process_button = False
-                                st.rerun()
-                            else:
-                                st.session_state.last_update_result = {
-                                    'success': False,
-                                    'message': 'Nenhuma melhoria significativa identificada no momento.'
-                                }
-                                st.session_state.show_process_button = False
-                                st.rerun()
-                
-                # Mostra resultado do último processamento (após rerun)
+                                if new_prompt != current_prompt:
+                                    new_version = st.session_state.prompt_manager.update_prompt(
+                                        new_prompt,
+                                        improvements
+                                    )
+                                    
+                                    st.session_state.last_update_result = {
+                                        'success': True,
+                                        'version': new_version,
+                                        'improvements': improvements,
+                                        'auto': True
+                                    }
+                        
+                        st.rerun()
+
+                # Mostra resultado do processamento automático
                 if 'last_update_result' in st.session_state:
                     result = st.session_state.last_update_result
                     
                     if result.get('success'):
-                        st.success(f"Prompt atualizado para versão {result['version']}!")
+                        auto_text = " (automático)" if result.get('auto') else ""
+                        st.success(f"Prompt atualizado para versão {result['version']}{auto_text}!")
                         
                         with st.expander("Ver melhorias aplicadas", expanded=True):
                             for imp in result.get('improvements', []):
