@@ -8,7 +8,7 @@ import os
 from datetime import datetime
 from pathlib import Path
 
-from src.agent import Chatbot, PromptManager
+from src.agent import Chatbot, PromptManager, ConversationManager
 from src.feedback import FeedbackProcessor
 
 # Configuração de logging
@@ -85,26 +85,28 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-def initialize_session_state():
-    """Inicializa estado da sessão"""
-    if 'initialized' not in st.session_state:
-        # Verifica API key
+def initialize_session():
+    """Inicializa ou recupera estado da sessão"""
+    if "initialized" not in st.session_state:
+        # Carrega variáveis de ambiente
         api_key = os.getenv("GEMINI_API_KEY")
         if not api_key:
-            st.error("GEMINI_API_KEY não configurada! Configure a variável de ambiente.")
+            st.error("GEMINI_API_KEY não encontrada!")
             st.stop()
         
         # Inicializa componentes
         st.session_state.chatbot = Chatbot(api_key)
         st.session_state.feedback_processor = FeedbackProcessor(api_key)
         st.session_state.prompt_manager = st.session_state.chatbot.prompt_manager
+        st.session_state.conversation_manager = ConversationManager()
         
-        # Estado da interface
-        st.session_state.messages = []
+        # Inicia uma NOVA sessão (não carrega mensagens antigas)
+        st.session_state.conversation_manager.start_new_session()
+        st.session_state.messages = []  # Começa vazio
         st.session_state.feedback_history = []
         st.session_state.initialized = True
         
-        logger.info("Sessão inicializada")
+        logger.info("Nova sessão inicializada")
 
 
 def render_sidebar():
@@ -133,8 +135,10 @@ def render_sidebar():
         
         if st.button("Limpar Conversa", use_container_width=True):
             st.session_state.chatbot.clear_history()
+            st.session_state.conversation_manager.clear_current_session()
             st.session_state.messages = []
-            st.success("Conversa limpa!")
+            
+            st.success("Conversa limpa! Nova sessão iniciada.")
             st.rerun()
         
         if st.button("Atualizar Estatísticas", use_container_width=True):
@@ -213,19 +217,28 @@ def render_chat_area():
             "content": user_input,
             "timestamp": datetime.now().isoformat()
         })
+        st.session_state.conversation_manager.add_message("user", user_input)
         
         # Processa com o chatbot
         with st.spinner("Pensando..."):
             response_data = st.session_state.chatbot.chat(user_input)
         
+        # Extrai dados da resposta
+        response = response_data.get("response", "")
+        tools_used = response_data.get("tools_used", [])
+        tools_output = response_data.get("tools_output", "")
+        
         # Adiciona resposta do assistente
         st.session_state.messages.append({
             "role": "assistant",
-            "content": response_data["response"],
-            "tools_output": response_data.get("tools_output", ""),
-            "tools_used": response_data.get("tools_used", []),
-            "timestamp": datetime.now().isoformat()
+            "content": response,
+            "timestamp": datetime.now().isoformat(),
+            "tools_used": tools_used,
+            "tools_output": tools_output
         })
+        st.session_state.conversation_manager.add_message(
+            "assistant", response, tools_used, tools_output
+        )
         
         st.rerun()
 
@@ -238,7 +251,7 @@ def render_feedback_area():
                 unsafe_allow_html=True)
     
     # Tabs para organizar conteúdo
-    tab1, tab2, tab3 = st.tabs(["Dar Feedback", "Histórico", "Prompt Atual"])
+    tab1, tab2, tab3, tab4 = st.tabs(["Dar Feedback", "Histórico Feedbacks", "Histórico Conversas", "Prompt Atual"])
     
     with tab1:
         st.markdown("### Enviar Feedback")
@@ -346,6 +359,7 @@ def render_feedback_area():
                     
                     # Limpa resultado após mostrar
                     del st.session_state.last_update_result
+                    
     with tab2:
         st.markdown("### Histórico de Feedbacks")
         
@@ -384,6 +398,93 @@ def render_feedback_area():
                     st.markdown(f"**Feedback:** {fb['feedback_text']}")
         
     with tab3:
+        st.markdown("### Histórico de Conversas")
+        
+        st.info("Todas as conversas são salvas automaticamente no histórico.")
+        
+        # Carrega todas as sessões do histórico
+        all_sessions = st.session_state.conversation_manager.get_all_sessions()
+        
+        if not all_sessions:
+            st.info("Nenhuma conversa no histórico ainda. Comece a conversar e suas mensagens serão salvas automaticamente!")
+        else:
+            # Estatísticas
+            stats = st.session_state.conversation_manager.get_statistics()
+            
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Total de Sessões", stats["total_sessions"])
+            with col2:
+                st.metric("Total de Mensagens", stats["total_messages"])
+            
+            st.markdown("---")
+            
+            # Opção de limpar o histórico
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                st.markdown("**Sessões Anteriores:**")
+            with col2:
+                if st.button("Limpar Histórico", use_container_width=True):
+                    st.session_state.conversation_manager.clear_all_history()
+                    st.success("Histórico limpo!")
+                    st.rerun()
+            
+            # Mostra cada sessão (mais recentes primeiro)
+            for idx, session in enumerate(reversed(all_sessions)):
+                session_num = len(all_sessions) - idx
+                started = session["started_at"][:19].replace("T", " ")
+                msg_count = session["message_count"]
+                
+                # Identifica ferramentas usadas nesta sessão
+                tools_in_session = set()
+                for msg in session["messages"]:
+                    if msg["role"] == "assistant" and msg.get("tools_used"):
+                        for tool_name, _ in msg["tools_used"]:
+                            tools_in_session.add(tool_name)
+                
+                tools_str = f" - {', '.join(tools_in_session)}" if tools_in_session else ""
+                
+                with st.expander(
+                    f"Sessão #{session_num} - {msg_count} mensagens{tools_str} - {started}",
+                    expanded=False
+                ):
+                    # Mostra conversas da sessão
+                    messages = session["messages"]
+                    
+                    for i in range(0, len(messages), 2):
+                        if i + 1 < len(messages):
+                            user_msg = messages[i]
+                            assistant_msg = messages[i + 1]
+                            
+                            # Pergunta
+                            st.markdown("**Você:**")
+                            st.info(user_msg["content"])
+                            
+                            # Resposta
+                            st.markdown("**Assistente:**")
+                            st.success(assistant_msg["content"])
+                            
+                            # Ferramentas usadas
+                            if assistant_msg.get("tools_used"):
+                                with st.expander("Ferramentas utilizadas"):
+                                    for tool_name, tool_params in assistant_msg["tools_used"]:
+                                        st.markdown(f"- **{tool_name}**: `{tool_params}`")
+                                    
+                                    if assistant_msg.get("tools_output"):
+                                        st.markdown("---")
+                                        st.markdown(assistant_msg["tools_output"])
+                            
+                            if i + 2 < len(messages):
+                                st.markdown("---")
+                    
+                    # Botão para deletar esta sessão
+                    st.markdown("---")
+                    if st.button(f"Deletar Sessão #{session_num}", key=f"del_{session['session_id']}"):
+                        st.session_state.conversation_manager.delete_session(session["session_id"])
+                        st.success(f"Sessão #{session_num} removida!")
+                        st.rerun()
+    
+    with tab4:
         st.markdown("### Prompt Atual do Sistema")
         
         prompt_stats = st.session_state.prompt_manager.get_statistics()
@@ -418,11 +519,10 @@ def render_feedback_area():
                 st.markdown("**Prompt:**")
                 st.code(prompt_data["prompt"], language="markdown")
 
-
 def main():
     """Função principal da aplicação"""
     # Inicializa sessão
-    initialize_session_state()
+    initialize_session()
     
     # Renderiza sidebar
     render_sidebar()
