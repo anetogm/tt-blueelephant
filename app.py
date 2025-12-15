@@ -141,9 +141,6 @@ def render_sidebar():
             st.success("Conversa limpa! Nova sessão iniciada.")
             st.rerun()
         
-        if st.button("Atualizar Estatísticas", use_container_width=True):
-            st.rerun()
-        
         st.markdown("---")
         
         # Ferramentas disponíveis
